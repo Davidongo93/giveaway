@@ -1,11 +1,14 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { RaffleType } from '../../services/api';
+
 interface PurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
   number: number | null;
   price: number;
+  raffleType: RaffleType
 }
 
 export default function PurchaseModal({ isOpen, onClose, onConfirm, number, price }: PurchaseModalProps) {

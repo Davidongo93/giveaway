@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 
 // Configuración base de Axios
 const api = axios.create({
@@ -16,14 +16,32 @@ export interface User {
     email: string;
 }
 
+export enum RaffleType {
+    SMALL = 'small',    // 100 tickets
+    MEDIUM = 'medium',  // 1000 tickets
+    LARGE = 'large',    // 10000 tickets
+}
+export enum RaffleStatus {
+    DRAFT = 'draft',
+    ACTIVE = 'active',
+    CLOSED = 'closed',
+    CANCELLED = 'cancelled',
+    FINISHED = 'finished',
+}
+
+
 export interface Raffle {
     id: string;
     creatorId: string;
+    raffleType: RaffleType;
+    title: string;
     description: string;
+    prizeImageUrl: string;
     ticketPrice: number;
     prizeValue: number;
     tickets: boolean[];
-    status: string;
+    status: RaffleStatus;
+    createdAt: string;
 }
 
 export interface Ticket {
@@ -68,7 +86,7 @@ export interface ApiResponse<T> {
 
 // Interceptor modificado para mayor claridad
 api.interceptors.response.use(
-    (response: ApiResponse<any>) => {
+    (response: ApiResponse<AxiosResponse>) => {
         // Devuelve directamente data.data ya que la respuesta está envuelta en ApiResponse
         console.log('API Response:', response.data);
         return response.data;
