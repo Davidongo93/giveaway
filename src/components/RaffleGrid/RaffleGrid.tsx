@@ -73,12 +73,16 @@ export default function RaffleGrid({ raffle, onPurchase, currentUserId }: Raffle
     3: { mobile: 'w-16 h-16 text-base', tablet: 'w-20 h-20 text-lg', desktop: 'w-24 h-24 text-xl' },
   };
 
-  // Función para formatear el número de ticket
-  const formatTicketNumber = useCallback((number: number): string => {
-    const totalTickets = raffle.tickets.length;
-    const maxDigits = totalTickets.toString().length;
-    return number.toString().padStart(maxDigits, '0');
-  }, [raffle.tickets.length]);
+// Función para formatear el número de ticket como string (manteniendo los ceros a la izquierda)
+const formatTicketNumber = useCallback((number: number): string => {
+  const totalTickets = raffle.tickets.length - 1;
+  const numberLength = totalTickets.toString().length;
+  const formattedNumber = number.toString().padStart(numberLength, '0');
+  
+  console.log(`Formateando número: ${number} -> ${formattedNumber}, Total tickets: ${totalTickets}, Longitud: ${numberLength}`);
+  
+  return formattedNumber; // Devuelve string, no número
+}, [raffle.tickets.length]);
 
   const config: GridConfig = 
     raffle.raffleType === RaffleType.SMALL ? GRID_CONFIGS[RaffleType.SMALL] :
@@ -195,9 +199,8 @@ export default function RaffleGrid({ raffle, onPurchase, currentUserId }: Raffle
   }, []);
 
   // Función para verificar si un número es palíndromo
-  const isPalindrome = useCallback((number: number): boolean => {
-    const numStr = number.toString().padStart(raffle.tickets.length.toString().length, '0');
-    return numStr === numStr.split('').reverse().join('');
+  const isPalindrome = useCallback((number: string): boolean => {
+    return number === number.split('').reverse().join('');
   }, [raffle.tickets.length]);
 
   // Renderizar controles de paginación
@@ -290,7 +293,7 @@ export default function RaffleGrid({ raffle, onPurchase, currentUserId }: Raffle
             formattedNumber={formatTicketNumber(number)} // Pasamos el número formateado
             price={raffle.ticketPrice}
             isSold={isSold}
-            isPalindrome={isPalindrome(number)}
+            isPalindrome={isPalindrome(formatTicketNumber(number))}
             onClick={() => handleCellClick(number)}
             cellSize={currentZoomConfig} // Usamos el zoom actual
             isDisabled={raffle.status !== 'active'}
