@@ -1,17 +1,24 @@
 import { AnimatePresence, motion } from 'framer-motion';
-
 import { RaffleType } from '../../services/api';
 
 interface PurchaseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  number: number | null;
+  numbers: number[];
   price: number;
-  raffleType: RaffleType
+  total: number;
+  raffleType: RaffleType;
 }
 
-export default function PurchaseModal({ isOpen, onClose, onConfirm, number, price }: PurchaseModalProps) {
+export default function PurchaseModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  numbers, 
+  price, 
+  total 
+}: PurchaseModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -29,10 +36,33 @@ export default function PurchaseModal({ isOpen, onClose, onConfirm, number, pric
             className="bg-gray-800 rounded-lg p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-4">Confirmar compra</h3>
-            <p className="mb-4">
-              Estás comprando el número <span className="font-bold">{number?.toString().padStart(2, '0')}</span> por <span className="font-bold">${price.toFixed(2)}</span>.
-            </p>
+            <h3 className="text-xl font-bold mb-4">
+              {numbers.length > 1 ? 'Confirmar compra múltiple' : 'Confirmar compra'}
+            </h3>
+            
+            {numbers.length > 1 ? (
+              <div className="mb-4">
+                <p className="mb-2">Estás comprando {numbers.length} tickets:</p>
+                <div className="max-h-32 overflow-y-auto bg-gray-700 rounded p-2">
+                  {numbers.map((number) => (
+                    <span key={number} className="inline-block bg-gray-600 rounded px-2 py-1 mr-2 mb-2 text-sm">
+                      #{number.toString().padStart(numbers[numbers.length - 1].toString().length, '0')}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3">
+                  Precio individual: <span className="font-bold">${price.toFixed(2)}</span>
+                </p>
+                <p className="text-lg font-bold text-green-400">
+                  Total: ${total.toFixed(2)}
+                </p>
+              </div>
+            ) : (
+              <p className="mb-4">
+                Estás comprando el número <span className="font-bold">#{numbers[0]?.toString().padStart(2, '0')}</span> 
+                por <span className="font-bold">${price.toFixed(2)}</span>.
+              </p>
+            )}
             
             <div className="flex flex-col space-y-3">
               <input
@@ -63,7 +93,7 @@ export default function PurchaseModal({ isOpen, onClose, onConfirm, number, pric
                 onClick={onConfirm}
                 className="px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-500 transition-colors"
               >
-                Confirmar compra
+                {numbers.length > 1 ? `Comprar ${numbers.length} tickets` : 'Confirmar compra'}
               </button>
             </div>
           </motion.div>

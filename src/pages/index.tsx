@@ -66,8 +66,13 @@ export default function Home() {
 
   const getRaffleStats = useCallback(() => {
     const activeRaffles = raffles.filter(r => r.status === RaffleStatus.ACTIVE);
-    const totalPrizeValue = activeRaffles.reduce((sum, r) => sum + r.prizeValue, 0);
-    const totalTickets = activeRaffles.reduce((sum, r) => sum + r.tickets.length, 0);
+    // debera sumar prizevalue y secondPrizevalue en caso de existir
+const totalPrizeValue = activeRaffles.reduce((sum, r) => {
+  const mainPrize = parseFloat(String(r.prizeValue)) || 0;
+  const secondPrize = r.secondPrizeValue ? parseFloat(String(r.secondPrizeValue)) || 0 : 0;
+  return sum + mainPrize + secondPrize;
+}, 0);
+  const totalTickets = activeRaffles.reduce((sum, r) => sum + r.tickets.length, 0);
     const soldTickets = activeRaffles.reduce((sum, r) => 
       sum + r.tickets.filter(t => t).length, 0
     );
@@ -171,16 +176,17 @@ export default function Home() {
               {/* Filter Buttons */}
               <div className="flex bg-white/10 backdrop-blur-lg rounded-lg p-1 border border-white/20">
                 <button
-                  onClick={() => setActiveFilter('all')}
+                  onClick={() => setActiveFilter('active')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeFilter === 'all' 
+                    activeFilter === 'active' 
                       ? 'bg-blue-500 text-white shadow-lg' 
                       : 'text-gray-300 hover:bg-white/5'
                   }`}
                 >
                   Todas
                 </button>
-                <button
+                {/* esto se hara cuando halla un dashboard de administrador
+                 <button
                   onClick={() => setActiveFilter('active')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     activeFilter === 'active' 
@@ -189,7 +195,7 @@ export default function Home() {
                   }`}
                 >
                   Activas
-                </button>
+                </button> */}
                 <button
                   onClick={() => setActiveFilter('featured')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
@@ -208,7 +214,7 @@ export default function Home() {
           <div className="text-center mb-6">
             <p className="text-gray-300">
               Mostrando <span className="text-white font-semibold">{filteredRaffles.length}</span> de{' '}
-              <span className="text-white font-semibold">{raffles.length}</span> rifas
+              <span className="text-white font-semibold">{filteredRaffles.length}</span> rifas
               {searchTerm && (
                 <span> para &quot;<span className="text-blue-400">{searchTerm}</span>&quot;</span>
               )}

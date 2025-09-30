@@ -1,331 +1,379 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RaffleStatus, RaffleType, TicketService } from '../../services/api';
 import PurchaseModal from './PurchaseModal';
 import TicketCell from './TicketCell';
+
 interface RaffleGridProps {
   raffle: {
     id: string;
     ticketPrice: number;
     tickets: boolean[];
-    raffleType: RaffleType,
-    status: RaffleStatus
+    raffleType: RaffleType;
+    status: RaffleStatus;
   };
   onPurchase: (number: number) => void;
   currentUserId: string;
 }
 
-type GridConfig = {
-  rows: number;
-  cols: number;
-  ticketsPerPage: number;
-  cellSize: {
-    mobile: string;
-    tablet: string;
-    desktop: string;
-  };
-};
-
-const GRID_CONFIGS: Record<RaffleType, GridConfig> = {
-  [RaffleType.SMALL]: {
-    rows: 10,
-    cols: 10,
-    ticketsPerPage: 100,
-    cellSize: {
-      mobile: 'w-8 h-8 text-xs',
-      tablet: 'w-12 h-12 text-sm',
-      desktop: 'w-16 h-16 text-base',
-    },
-  },
-  [RaffleType.MEDIUM]: {
-    rows: 20,
-    cols: 50,
-    ticketsPerPage: 200,
-    cellSize: {
-      mobile: 'w-6 h-6 text-xs',
-      tablet: 'w-8 h-8 text-xs',
-      desktop: 'w-10 h-10 text-sm',
-    },
-  },
-  [RaffleType.LARGE]: {
-    rows: 10,
-    cols: 10,
-    ticketsPerPage: 100,
-    cellSize: {
-      mobile: 'w-4 h-4 text-xs',
-      tablet: 'w-6 h-6 text-xs',
-      desktop: 'w-8 h-8 text-sm',
-    },
-  },
-};
+// Configuraciones de zoom
+const ZOOM_CONFIGS = [
+  { level: 1, rows: 5, cols: 10, cellSize: { mobile: 'w-12 h-12', tablet: 'w-16 h-16', desktop: 'w-20 h-20' } },
+  { level: 2, rows: 8, cols: 12, cellSize: { mobile: 'w-10 h-10', tablet: 'w-14 h-14', desktop: 'w-18 h-18' } },
+  { level: 3, rows: 10, cols: 15, cellSize: { mobile: 'w-8 h-8', tablet: 'w-12 h-12', desktop: 'w-16 h-16' } },
+  { level: 4, rows: 12, cols: 20, cellSize: { mobile: 'w-6 h-6', tablet: 'w-10 h-10', desktop: 'w-14 h-14' } },
+  { level: 5, rows: 15, cols: 25, cellSize: { mobile: 'w-5 h-5', tablet: 'w-8 h-8', desktop: 'w-12 h-12' } },
+];
 
 export default function RaffleGrid({ raffle, onPurchase, currentUserId }: RaffleGridProps) {
-  const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
+  const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-   const [searchTerm, setSearchTerm] = useState('');
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(3);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
 
-   // Configuración de zoom
-  const ZOOM_LEVELS = {
-    1: { mobile: 'w-8 h-8 text-xs', tablet: 'w-12 h-12 text-sm', desktop: 'w-16 h-16 text-base' },
-    2: { mobile: 'w-12 h-12 text-sm', tablet: 'w-16 h-16 text-base', desktop: 'w-20 h-20 text-lg' },
-    3: { mobile: 'w-16 h-16 text-base', tablet: 'w-20 h-20 text-lg', desktop: 'w-24 h-24 text-xl' },
-  };
+  const currentZoom = ZOOM_CONFIGS.find(config => config.level === zoomLevel) || ZOOM_CONFIGS[2];
+  const ticketsPerView = currentZoom.rows * currentZoom.cols;
 
-// Función para formatear el número de ticket como string (manteniendo los ceros a la izquierda)
-const formatTicketNumber = useCallback((number: number): string => {
-  const totalTickets = raffle.tickets.length - 1;
-  const numberLength = totalTickets.toString().length;
-  const formattedNumber = number.toString().padStart(numberLength, '0');
-  
-  console.log(`Formateando número: ${number} -> ${formattedNumber}, Total tickets: ${totalTickets}, Longitud: ${numberLength}`);
-  
-  return formattedNumber; // Devuelve string, no número
-}, [raffle.tickets.length]);
+  // Función para formatear números de ticket
+  const formatTicketNumber = useCallback((number: number): string => {
+    const totalTickets = raffle.tickets.length-1;
+    const numberLength = totalTickets.toString().length;
+    return number.toString().padStart(numberLength, '0');
+  }, [raffle.tickets.length]);
 
-  const config: GridConfig = 
-    raffle.raffleType === RaffleType.SMALL ? GRID_CONFIGS[RaffleType.SMALL] :
-    raffle.raffleType === RaffleType.MEDIUM ? GRID_CONFIGS[RaffleType.MEDIUM] :
-    GRID_CONFIGS[RaffleType.LARGE];
-  console.log(config);
+  // Verificar si es palíndromo
+  const isPalindrome = useCallback((number: string): boolean => {
+    return number === number.split('').reverse().join('');
+  }, []);
 
-  // Efecto para buscar un número y cambiar a la página correspondiente
-  useEffect(() => {
-    if (searchTerm === '') return;
-
-    const number = parseInt(searchTerm, 10);
-    if (isNaN(number) || number < 0 || number >= raffle.tickets.length) {
-      // Número inválido, no hacemos nada
-      return;
-    }
-
-    const page = Math.floor(number / config.ticketsPerPage);
-    setCurrentPage(page);
-  }, [searchTerm, raffle.tickets.length, config.ticketsPerPage]);
-  
-  const totalPages = Math.ceil(raffle.tickets.length / config.ticketsPerPage);
-
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const gridConfig = useMemo(() => {
-    const totalTickets = raffle.tickets.length;
-    const actualRows = Math.min(config.rows, Math.ceil(totalTickets / config.cols));
-    
-    return {
-      ...config,
-      rows: actualRows,
-      totalTickets,
-    };
-  }, [raffle.tickets.length, config]);
-
-  // Calcular tickets visibles en la página actual
-  const visibleTickets = useMemo(() => {
-    const startIndex = currentPage * config.ticketsPerPage;
-    const endIndex = Math.min(startIndex + config.ticketsPerPage, raffle.tickets.length);
-    
-    return raffle.tickets.slice(startIndex, endIndex).map((isSold, index) => ({
-      number: startIndex + index,
-      isSold,
-    }));
-  }, [raffle.tickets, currentPage, config.ticketsPerPage]);
-
-  const handleCellClick = useCallback((number: number) => {
-    if (raffle.status !== 'active') {
-      return; // Solo permitir clicks si la rifa está activa
-    }
-    
-    if (raffle.tickets[number]) {
-      return; // No hacer nada si el ticket ya está vendido
-    }
-    
-    setSelectedNumber(number);
-    setIsModalOpen(true);
-  }, [raffle.tickets, raffle.status]);
-
-
-  // Función para manejar la búsqueda
+  // Búsqueda de tickets
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value === '') return;
+
+    const number = parseInt(value, 10);
+    if (!isNaN(number) && number >= 0 && number < raffle.tickets.length) {
+      const offset = Math.floor(number / currentZoom.cols) * currentZoom.cols;
+      setCurrentOffset(offset);
+    }
   };
 
-  // Función para manejar el cambio de zoom
+  // Controles de zoom
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 1, 3));
+    setZoomLevel(prev => Math.min(prev + 1, ZOOM_CONFIGS.length));
   };
 
   const handleZoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 1, 1));
   };
 
-  // Aplicar el zoom a la configuración de celdas
-  const currentZoomConfig = ZOOM_LEVELS[zoomLevel as keyof typeof ZOOM_LEVELS];
-
-  const handlePurchase = useCallback(async () => {
-    if (selectedNumber === null) return;
-
-    try {
-      await TicketService.buy({
-        raffleId: raffle.id,
-        userId: currentUserId,
-        number: selectedNumber,
-        urlComprobante: 'proof', // TODO: Implementar subida de comprobante
-      });
-      
-      onPurchase(selectedNumber);
-      setIsModalOpen(false);
-      setSelectedNumber(null);
-    } catch (error) {
-      console.error('Error purchasing ticket:', error);
-      // TODO: Mostrar notificación de error al usuario
+  // Selección múltiple
+  const handleCellClick = useCallback((number: number) => {
+    if (raffle.status !== 'active' || raffle.tickets[number]) {
+      return;
     }
-  }, [selectedNumber, raffle.id, currentUserId, onPurchase]);
 
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false);
-    setSelectedNumber(null);
-  }, []);
+    setSelectedNumbers(prev => {
+      if (prev.includes(number)) {
+        return prev.filter(n => n !== number);
+      } else {
+        return [...prev, number];
+      }
+    });
+  }, [raffle.tickets, raffle.status]);
 
-  // const goToPage = useCallback((page: number) => {
-  //   setCurrentPage(Math.max(0, Math.min(page, totalPages - 1)));
-  // }, [totalPages]);
-
-  const nextPage = useCallback(() => {
-    setCurrentPage(prev => Math.min(prev + 1, totalPages - 1));
-  }, [totalPages]);
-
-  const prevPage = useCallback(() => {
-    setCurrentPage(prev => Math.max(prev - 1, 0));
-  }, []);
-
-  // Función para verificar si un número es palíndromo
-  const isPalindrome = useCallback((number: string): boolean => {
-    return number === number.split('').reverse().join('');
-  }, [raffle.tickets.length]);
-
-  // Renderizar controles de paginación
-  const renderPagination = () => {
-    if (totalPages <= 1) return null;
-
-    return (
-      <div className="flex items-center justify-center space-x-2 mt-4">
-        <button
-          onClick={prevPage}
-          disabled={currentPage === 0}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
-        >
-          Anterior
-        </button>
-        
-        <span className="text-sm text-gray-600">
-          Página {currentPage + 1} de {totalPages}
-        </span>
-        
-        <button
-          onClick={nextPage}
-          disabled={currentPage === totalPages - 1}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50 hover:bg-gray-300 transition-colors"
-        >
-          Siguiente
-        </button>
-      </div>
-    );
+  // Drag para desplazamiento infinito
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStartX(e.clientX);
   };
 
-  // Renderizar información del grid
-  const renderGridInfo = () => (
-    <div className="text-center mb-4">
-      <div className="flex flex-wrap justify-center items-center gap-4 text-sm text-gray-600">
-        <span>Tickets totales: {raffle.tickets.length}</span>
-        <span>•</span>
-        <span>Disponibles: {raffle.tickets.filter(ticket => !ticket).length}</span>
-        <span>•</span>
-        <span>Vendidos: {raffle.tickets.filter(ticket => ticket).length}</span>
-        {totalPages > 1 && (
-          <>
-            <span>•</span>
-            <span>Mostrando {visibleTickets.length} tickets</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.clientX - dragStartX;
+    if (Math.abs(deltaX) > 30) {
+      setCurrentOffset(prev => {
+        const newOffset = prev + (deltaX > 0 ? -currentZoom.cols : currentZoom.cols);
+        return Math.max(0, Math.min(newOffset, raffle.tickets.length - ticketsPerView));
+      });
+      setDragStartX(e.clientX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Touch events para móvil
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    setDragStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    
+    const deltaX = e.touches[0].clientX - dragStartX;
+    if (Math.abs(deltaX) > 20) {
+      setCurrentOffset(prev => {
+        const newOffset = prev + (deltaX > 0 ? -currentZoom.cols : currentZoom.cols);
+        return Math.max(0, Math.min(newOffset, raffle.tickets.length - ticketsPerView));
+      });
+      setDragStartX(e.touches[0].clientX);
+    }
+  };
+
+  // Tickets visibles en la vista actual
+  const visibleTickets = useMemo(() => {
+    const startIndex = currentOffset;
+    const endIndex = Math.min(startIndex + ticketsPerView, raffle.tickets.length);
+    
+    return raffle.tickets.slice(startIndex, endIndex).map((isSold, index) => ({
+      number: startIndex + index,
+      isSold,
+    }));
+  }, [raffle.tickets, currentOffset, ticketsPerView]);
+
+  // Compra múltiple
+  const handlePurchaseMultiple = useCallback(async () => {
+    if (selectedNumbers.length === 0) return;
+
+    try {
+      for (const number of selectedNumbers) {
+        await TicketService.buy({
+          raffleId: raffle.id,
+          userId: currentUserId,
+          number: number,
+          urlComprobante: 'proof',
+        });
+      }
+      
+      selectedNumbers.forEach(number => onPurchase(number));
+      setSelectedNumbers([]);
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error purchasing tickets:', error);
+    }
+  }, [selectedNumbers, raffle.id, currentUserId, onPurchase]);
+
+  // Navegación por teclado
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setCurrentOffset(prev => Math.max(0, prev - currentZoom.cols));
+      } else if (e.key === 'ArrowRight') {
+        setCurrentOffset(prev => Math.min(prev + currentZoom.cols, raffle.tickets.length - ticketsPerView));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [currentZoom.cols, raffle.tickets.length, ticketsPerView]);
 
   return (
-        <div className="mb-8">
-      {/* Controles: buscador y zoom */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Buscar ticket:</span>
-          <input
-            type="number"
-            value={searchTerm}
-            onChange={handleSearch}
-            min="0"
-            max={raffle.tickets.length - 1}
-            className="w-32 px-2 py-1 border border-gray-300 rounded text-sm"
-            placeholder="Ej: 42"
-          />
+    <div className="mb-8">
+      {/* Controles superiores */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6 p-4 bg-gray-800 rounded-lg">
+        {/* Buscador */}
+        <div className="flex-1 w-full lg:w-auto">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Buscar ticket
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              value={searchTerm}
+              onChange={handleSearch}
+              min="0"
+              max={raffle.tickets.length - 1}
+              className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder={`Número (0-${raffle.tickets.length - 1})`}
+            />
+            <button
+              onClick={() => setSearchTerm('')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Zoom:</span>
-          <button onClick={handleZoomOut} className="px-2 py-1 bg-gray-200 rounded">-</button>
-          <span className="text-sm">{zoomLevel}x</span>
-          <button onClick={handleZoomIn} className="px-2 py-1 bg-gray-200 rounded">+</button>
-        </div>
-      </div>
-      {/* Información del grid */}
-      {renderGridInfo()}
 
-      {/* Contenedor responsivo del grid */}
-      <div className="overflow-x-auto pb-4">
-        <div className="inline-block min-w-full">
-          <div 
-            className="grid gap-1 mx-auto justify-center"
-            style={{
-              gridTemplateColumns: `repeat(${Math.min(config.cols, visibleTickets.length)}, minmax(0, 1fr))`
-            }}
-          >
-            {visibleTickets.map(({ number, isSold }) => (
-          <TicketCell
-            key={number}
-            number={number}
-            formattedNumber={formatTicketNumber(number)} // Pasamos el número formateado
-            price={raffle.ticketPrice}
-            isSold={isSold}
-            isPalindrome={isPalindrome(formatTicketNumber(number))}
-            onClick={() => handleCellClick(number)}
-            cellSize={currentZoomConfig} // Usamos el zoom actual
-            isDisabled={raffle.status !== 'active'}
-          />
-            ))}
+        {/* Controles de zoom y navegación */}
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+          {/* Zoom */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-300">Zoom:</span>
+            <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={handleZoomOut}
+                disabled={zoomLevel === 1}
+                className="px-3 py-1 bg-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500 transition-colors"
+              >
+                −
+              </button>
+              <span className="px-2 text-sm text-white min-w-8 text-center">
+                {zoomLevel}x
+              </span>
+              <button
+                onClick={handleZoomIn}
+                disabled={zoomLevel === ZOOM_CONFIGS.length}
+                className="px-3 py-1 bg-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500 transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Navegación */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-300">Navegar:</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentOffset(prev => Math.max(0, prev - currentZoom.cols))}
+                disabled={currentOffset === 0}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500 transition-colors"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => setCurrentOffset(prev => Math.min(prev + currentZoom.cols, raffle.tickets.length - ticketsPerView))}
+                disabled={currentOffset >= raffle.tickets.length - ticketsPerView}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-500 transition-colors"
+              >
+                →
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Paginación */}
-      {renderPagination()}
+      {/* Información de selección */}
+      {selectedNumbers.length > 0 && (
+        <div className="mb-4 p-4 bg-blue-600 rounded-lg">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+              <span className="text-white font-semibold">
+                {selectedNumbers.length} ticket(s) seleccionado(s)
+              </span>
+              <p className="text-blue-100 text-sm">
+                Total: ${(selectedNumbers.length * raffle.ticketPrice).toFixed(2)}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedNumbers([])}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition-colors"
+              >
+                Limpiar
+              </button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Comprar Selección
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Modal de compra */}
+      {/* Grid de tickets */}
+      <div className="relative">
+        <div
+          ref={gridRef}
+          className={`
+            grid m-auto justify-center transition-all duration-200
+            ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+          `}
+          style={{
+            gridTemplateColumns: `repeat(${currentZoom.cols}, minmax(0, 1fr))`
+          }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleMouseUp}
+        >
+          {visibleTickets.map(({ number, isSold }) => (
+            <TicketCell
+              key={number}
+              number={number}
+              formattedNumber={formatTicketNumber(number)}
+              price={raffle.ticketPrice}
+              isSold={isSold}
+              isPalindrome={isPalindrome(formatTicketNumber(number))}
+              isSelected={selectedNumbers.includes(number)}
+              onClick={() => handleCellClick(number)}
+              cellSize={currentZoom.cellSize}
+              isDisabled={raffle.status !== 'active'}
+            />
+          ))}
+        </div>
+
+        {/* Indicadores de desplazamiento infinito */}
+        <div className="flex justify-center items-center gap-4 mt-4 text-sm text-gray-400">
+          <span>← Desplaza o arrastra para navegar →</span>
+        </div>
+      </div>
+
+      {/* Información del grid */}
+      <div className="text-center mt-6 p-4 bg-gray-800 rounded-lg">
+        <div className="flex flex-wrap justify-center items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <span>Disponible</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div>
+            <span>Palíndromo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-500 rounded"></div>
+            <span>Vendido</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+            <span>Seleccionado</span>
+          </div>
+        </div>
+        
+        <div className="mt-4 flex flex-wrap justify-center items-center gap-4 text-gray-300">
+          <span>Mostrando tickets {currentOffset + 1}-{Math.min(currentOffset + ticketsPerView, raffle.tickets.length)} de {raffle.tickets.length}</span>
+          <span>•</span>
+          <span>Disponibles: {raffle.tickets.filter(ticket => !ticket).length}</span>
+          <span>•</span>
+          <span>Vendidos: {raffle.tickets.filter(ticket => ticket).length}</span>
+        </div>
+      </div>
+
+      {/* Modal de compra múltiple */}
       <PurchaseModal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        onConfirm={handlePurchase}
-        number={selectedNumber}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handlePurchaseMultiple}
+        numbers={selectedNumbers}
         price={raffle.ticketPrice}
+        total={selectedNumbers.length * raffle.ticketPrice}
         raffleType={raffle.raffleType}
-        // isPurchasing={false} // TODO: Implementar estado de carga
       />
 
       {/* Estado de la rifa */}
       {raffle.status !== 'active' && (
-        <div className="text-center mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded">
-          <p className="text-yellow-800 font-medium">
+        <div className="text-center mt-6 p-4 bg-yellow-600 rounded-lg">
+          <p className="text-white font-medium">
             {raffle.status === RaffleStatus.DRAFT && 'Esta rifa está en borrador'}
             {raffle.status === RaffleStatus.CANCELLED && 'Esta rifa ha sido cancelada'}
             {raffle.status === RaffleStatus.FINISHED && 'Esta rifa ha finalizado'}
           </p>
-          <p className="text-yellow-600 text-sm mt-1">
+          <p className="text-yellow-100 text-sm mt-1">
             No se pueden comprar tickets en este estado
           </p>
         </div>

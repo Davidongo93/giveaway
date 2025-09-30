@@ -39,6 +39,8 @@ export interface Raffle {
     prizeImageUrl: string;
     ticketPrice: number;
     prizeValue: number;
+    secondPrizeValue?: number; // Nuevo campo para segundo premio
+    featured: boolean;
     tickets: boolean[];
     status: RaffleStatus;
     createdAt: string;

@@ -6,6 +6,7 @@ interface TicketCellProps {
   price: number;
   isSold: boolean;
   isPalindrome: boolean;
+  isSelected: boolean;
   onClick: () => void;
   cellSize: {
     mobile: string;
@@ -16,11 +17,11 @@ interface TicketCellProps {
 }
 
 const TicketCell = memo(function TicketCell({
-  number,
   formattedNumber,
   price,
   isSold,
   isPalindrome,
+  isSelected,
   onClick,
   cellSize,
   isDisabled = false,
@@ -32,39 +33,46 @@ const TicketCell = memo(function TicketCell({
   };
 
   const getBackgroundColor = () => {
-    if (isSold) return 'bg-red-100 border-red-300';
-    if (isPalindrome) return 'bg-blue-100 border-blue-300';
-    if (isDisabled) return 'bg-gray-100 border-gray-300';
-    return 'bg-green-100 border-green-300 hover:bg-green-200 cursor-pointer';
+    if (isSelected) return 'bg-yellow-500 border-yellow-600';
+    if (isSold) return 'bg-red-500 border-red-600';
+    if (isPalindrome) return 'bg-blue-500 border-blue-600';
+    if (isDisabled) return 'bg-gray-500 border-gray-600';
+    return 'bg-green-500 border-green-600 hover:bg-green-400 cursor-pointer';
   };
 
   const getTextColor = () => {
-    if (isSold) return 'text-red-700';
-    if (isDisabled) return 'text-gray-500';
-    return 'text-gray-800';
+    if (isSelected) return 'text-white';
+    if (isSold) return 'text-white';
+    if (isDisabled) return 'text-gray-300';
+    return 'text-white';
   };
 
   return (
     <div
       className={`
-        border-2 rounded-lg flex flex-col items-center justify-center transition-all duration-200
+        border-2 m-auto w-full h-full rounded-lg flex flex-col items-center justify-center transition-all duration-200
         ${cellSize.mobile} 
         md:${cellSize.tablet} 
         lg:${cellSize.desktop}
         ${getBackgroundColor()}
-        ${(!isSold && !isDisabled) ? 'hover:scale-105 hover:shadow-md' : ''}
+        ${(!isSold && !isDisabled) ? 'hover:scale-110 hover:shadow-lg transform' : ''}
+        ${isSelected ? 'ring-2 ring-white ring-opacity-50' : ''}
       `}
       onClick={handleClick}
-      title={isSold ? `Ticket #${number} - Vendido` : `Ticket #${number} - $${price}`}
+      title={
+        isSold ? `Ticket #${formattedNumber} - Vendido` :
+        isSelected ? `Ticket #${formattedNumber} - Seleccionado` :
+        `Ticket #${formattedNumber} - $${price}`
+      }
     >
-      <span className={`font-bold ${getTextColor()} leading-none`}>
-        {formattedNumber}
-      </span>
-      {isPalindrome && !isSold && (
-        <span className="text-blue-500 text-xs leading-none">★</span>
+      <span className={`font-bold ${getTextColor()} leading-none text-xs md:text-sm`}>
+        {formattedNumber}{isPalindrome && !isSold && (
+        <span >★</span>
       )}
+      </span>
+      
       {isSold && (
-        <span className="text-red-500 text-xs leading-none">✕</span>
+        <span className="text-white text-xs leading-none mt-0.5">✕</span>
       )}
     </div>
   );
