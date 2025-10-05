@@ -50,7 +50,7 @@ const TicketCell = memo(function TicketCell({
   return (
     <div
       className={`
-        border-2 m-auto w-full h-full rounded-lg flex flex-col items-center justify-center transition-all duration-200
+        border-2 m-auto w-full h-full flex flex-col items-center justify-center transition-all duration-200
         ${cellSize.mobile} 
         md:${cellSize.tablet} 
         lg:${cellSize.desktop}
