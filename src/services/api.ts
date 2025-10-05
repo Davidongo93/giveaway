@@ -40,6 +40,7 @@ export interface Raffle {
     ticketPrice: number;
     prizeValue: number;
     secondPrizeValue?: number; // Nuevo campo para segundo premio
+    drawDate: Date | null
     featured: boolean;
     tickets: boolean[];
     status: RaffleStatus;

@@ -6,6 +6,7 @@ import LoadingSpinner from '../../components/LoadingSpinner/LoadingSpinner';
 import Navbar from '../../components/Navbar/NavBar';
 import PrizeDetails from '../../components/PrizeDetails/PrizeDetails';
 import RaffleGrid from '../../components/RaffleGrid/RaffleGrid';
+import ShareRaffle from '../../components/ShareRaffle/ShareRaffle';
 import { Raffle, RaffleService, RaffleType } from '../../services/api';
 
 export default function RaffleDetail() {
@@ -112,51 +113,73 @@ export default function RaffleDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-      <Head>
-        <title>{raffle.title || raffle.description} | Rifas Online</title>
-        <meta name="description" content={`Participa en la rifa: ${raffle.description}`} />
-      </Head>
+<Head>
+  <title>{raffle.title || raffle.description} | Rifas Online</title>
+  <meta name="description" content={`Participa en la rifa: ${raffle.description}. Premio: $${raffle.prizeValue}. Ticket: $${raffle.ticketPrice}`} />
+  
+  {/* Open Graph / Facebook */}
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={`https://unamanu.space/raffle/${raffle.id}`} />
+  <meta property="og:title" content={raffle.title || raffle.description} />
+  <meta property="og:description" content={`Premio: $${raffle.prizeValue} • Ticket: $${raffle.ticketPrice}`} />
+  <meta property="og:image" content={`/api/raffle/${raffle.id}/share-image`} />
+  
+  {/* Twitter */}
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content={`https://unamanu.space/raffle/${raffle.id}`} />
+  <meta property="twitter:title" content={raffle.title || raffle.description} />
+  <meta property="twitter:description" content={`Premio: $${raffle.prizeValue} • Ticket: $${raffle.ticketPrice}`} />
+  <meta property="twitter:image" content={`/api/raffle/${raffle.id}/share-image`} />
+</Head>
 
       <Navbar />
 
       <main className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Header responsivo */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
-          {/* Botón volver - móvil primero */}
-          <button
-            onClick={handleBack}
-            className="flex items-center text-blue-400 hover:text-blue-300 transition-colors self-start sm:self-auto"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span className="text-sm sm:text-base">Volver</span>
-          </button>
+<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
+  {/* Botón volver */}
+  <button
+    onClick={handleBack}
+    className="flex items-center text-blue-400 hover:text-blue-300 transition-colors self-start sm:self-auto"
+  >
+    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+    <span className="text-sm sm:text-base">Volver</span>
+  </button>
 
-          {/* Navegación por pestañas */}
-          <div className="flex space-x-1 sm:space-x-2 bg-gray-800 p-1 rounded-lg w-fit mx-auto sm:mx-0">
-            <button
-              onClick={() => setActiveTab('grid')}
-              className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md transition-all text-sm sm:text-base whitespace-nowrap ${
-                activeTab === 'grid' 
-                  ? 'bg-blue-600 text-white shadow-lg' 
-                  : 'text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              📋 Números
-            </button>
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md transition-all text-sm sm:text-base whitespace-nowrap ${
-                activeTab === 'details' 
-                  ? 'bg-blue-600 text-white shadow-lg' 
-                  : 'text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              🏆 Detalles
-            </button>
-          </div>
-        </div>
+  {/* Botón de compartir - NUEVO */}
+  <div className="flex items-center gap-4 self-start sm:self-auto">
+    <ShareRaffle 
+      raffle={raffle} 
+      className="shadow-lg" 
+    />
+    
+    {/* Navegación por pestañas */}
+    <div className="flex space-x-1 sm:space-x-2 bg-gray-800 p-1 rounded-lg">
+      <button
+        onClick={() => setActiveTab('grid')}
+        className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md transition-all text-sm sm:text-base whitespace-nowrap ${
+          activeTab === 'grid' 
+            ? 'bg-blue-600 text-white shadow-lg' 
+            : 'text-gray-300 hover:bg-gray-700'
+        }`}
+      >
+        📋 Números
+      </button>
+      <button
+        onClick={() => setActiveTab('details')}
+        className={`px-3 py-2 sm:px-4 sm:py-2 rounded-md transition-all text-sm sm:text-base whitespace-nowrap ${
+          activeTab === 'details' 
+            ? 'bg-blue-600 text-white shadow-lg' 
+            : 'text-gray-300 hover:bg-gray-700'
+        }`}
+      >
+        🏆 Detalles
+      </button>
+    </div>
+  </div>
+</div>
 
         {/* Información principal de la rifa */}
         <div className="text-center mb-6 sm:mb-8">
