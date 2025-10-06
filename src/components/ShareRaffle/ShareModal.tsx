@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 // components/ShareRaffle/ShareModal.tsx
 import { useEffect } from 'react';
 import { Raffle } from '../../services/api';
@@ -158,7 +159,7 @@ if (option.name === 'Instagram') {
           <div className="bg-gray-800 rounded-lg p-4 text-center">
             {generatedImage ? (
               <div className="space-y-3">
-                <img 
+                <img
                   src={generatedImage} 
                   alt="Vista previa para compartir" 
                   className="w-full rounded-lg border border-gray-600"

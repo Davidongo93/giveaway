@@ -66,13 +66,12 @@ export default function Home() {
 
   const getRaffleStats = useCallback(() => {
     const activeRaffles = raffles.filter(r => r.status === RaffleStatus.ACTIVE);
-    // debera sumar prizevalue y secondPrizevalue en caso de existir
-const totalPrizeValue = activeRaffles.reduce((sum, r) => {
-  const mainPrize = parseFloat(String(r.prizeValue)) || 0;
-  const secondPrize = r.secondPrizeValue ? parseFloat(String(r.secondPrizeValue)) || 0 : 0;
-  return sum + mainPrize + secondPrize;
-}, 0);
-  const totalTickets = activeRaffles.reduce((sum, r) => sum + r.tickets.length, 0);
+    const totalPrizeValue = activeRaffles.reduce((sum, r) => {
+      const mainPrize = parseFloat(String(r.prizeValue)) || 0;
+      const secondPrize = r.secondPrizeValue ? parseFloat(String(r.secondPrizeValue)) || 0 : 0;
+      return sum + mainPrize + secondPrize;
+    }, 0);
+    const totalTickets = activeRaffles.reduce((sum, r) => sum + r.tickets.length, 0);
     const soldTickets = activeRaffles.reduce((sum, r) => 
       sum + r.tickets.filter(t => t).length, 0
     );
@@ -82,37 +81,96 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
 
   const stats = getRaffleStats();
 
+  // Structured Data para SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Rifas Online - Premios Increíbles",
+    "description": "Plataforma de rifas online con premios espectaculares",
+    "url": "https://unamanu.space",
+    "mainEntity": {
+      "@type": "ItemList",
+      "numberOfItems": filteredRaffles.length,
+      "itemListElement": filteredRaffles.slice(0, 5).map((raffle, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Game",
+          "name": raffle.title || raffle.description,
+          "description": raffle.description,
+          "offers": {
+            "@type": "Offer",
+            "price": raffle.ticketPrice.toString(),
+            "priceCurrency": "USD"
+          }
+        }
+      }))
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#0E1E24] via-[#164C52] to-[#0E1E24] text-[#FAFAFA] font-sans">
       <Head>
         <title>Rifas Online | Participa y Gana Premios Increíbles</title>
-        <meta name="description" content="Descubre las mejores rifas online con premios espectaculares. Participa y gana desde tu dispositivo favorito." />
-        <meta name="keywords" content="rifas, sorteos, premios, tickets, ganar" />
+        <meta 
+          name="description" 
+          content="Descubre las mejores rifas online con premios espectaculares. Participa en sorteos emocionantes y gana grandes premios desde tu dispositivo." 
+        />
+        <meta name="keywords" content="rifas, sorteos, premios, tickets, ganar, lotería, concurso" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://unamanu.space" />
+        
+        {/* Open Graph */}
+        <meta property="og:title" content="Rifas Online | Premios Increíbles" />
+        <meta property="og:description" content="Participa en rifas emocionantes y gana premios espectaculares" />
+        <meta property="og:image" content="/og-image.jpg" />
+        <meta property="og:url" content="https://unamanu.space" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Rifas Online" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Rifas Online | Premios Increíbles" />
+        <meta name="twitter:description" content="Participa en rifas emocionantes y gana premios espectaculares" />
+        <meta name="twitter:image" content="/twitter-image.jpg" />
+        
+        {/* Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
       </Head>
 
       <Navbar />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="container mx-auto px-4 py-16 relative z-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#164C52]/30 to-[#7BD389]/20"></div>
+        <div className="container mx-auto px-4 py-16 md:py-24 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             <motion.h1 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent"
+              className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-[#FAFAFA] to-[#7BD389] bg-clip-text text-transparent leading-tight font-montserrat"
             >
-              Gana Premios <span className="text-yellow-400">Increíbles</span>
+              Gana Premios <span className="text-[#FFC857]">Increíbles</span>
             </motion.h1>
             
             <motion.p 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-xl md:text-2xl text-gray-300 mb-8"
+              className="text-xl md:text-2xl text-[#E5E7EB] mb-12 max-w-3xl mx-auto leading-relaxed font-medium"
             >
-              Participa en rifas emocionantes con premios desde <span className="text-green-400 font-semibold">${Math.min(...raffles.map(r => r.prizeValue))}</span> hasta <span className="text-yellow-400 font-semibold">${Math.max(...raffles.map(r => r.prizeValue))}</span>
+              Participa en rifas emocionantes con premios desde{' '}
+              <span className="text-[#7BD389] font-semibold">
+                ${raffles.length > 0 ? Math.min(...raffles.map(r => r.prizeValue)).toLocaleString() : '0'}
+              </span>{' '}
+              hasta{' '}
+              <span className="text-[#FFC857] font-semibold">
+                ${raffles.length > 0 ? Math.max(...raffles.map(r => r.prizeValue)).toLocaleString() : '0'}
+              </span>
             </motion.p>
 
             {/* Stats Overview */}
@@ -120,47 +178,52 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-16"
             >
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
-                <div className="text-2xl md:text-3xl font-bold text-green-400">{stats.activeRaffles}</div>
-                <div className="text-sm text-gray-300">Rifas Activas</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
-                <div className="text-2xl md:text-3xl font-bold text-yellow-400">${stats.totalPrizeValue.toLocaleString()}</div>
-                <div className="text-sm text-gray-300">En Premios</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
-                <div className="text-2xl md:text-3xl font-bold text-blue-400">{stats.totalTickets.toLocaleString()}</div>
-                <div className="text-sm text-gray-300">Tickets Totales</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 border border-white/20">
-                <div className="text-2xl md:text-3xl font-bold text-purple-400">{stats.soldTickets.toLocaleString()}</div>
-                <div className="text-sm text-gray-300">Tickets Vendidos</div>
-              </div>
+              {[
+                { value: stats.activeRaffles, label: 'Rifas Activas', color: 'text-[#7BD389]' },
+                { value: `$${stats.totalPrizeValue.toLocaleString()}`, label: 'En Premios', color: 'text-[#FFC857]' },
+                { value: stats.totalTickets.toLocaleString(), label: 'Tickets Totales', color: 'text-[#164C52]' },
+                { value: stats.soldTickets.toLocaleString(), label: 'Tickets Vendidos', color: 'text-[#FFC857]' }
+              ].map((stat, index) => (
+                <div 
+                  key={index}
+                  className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/10 hover:border-[#7BD389]/30 transition-all duration-300 hover:transform hover:scale-105"
+                >
+                  <div className={`text-2xl md:text-3xl font-bold ${stat.color} mb-2 font-montserrat`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-[#E5E7EB] font-medium">{stat.label}</div>
+                </div>
+              ))}
             </motion.div>
           </div>
         </div>
       </section>
 
-      <main className="container mx-auto px-4 py-8 relative z-10">
+      <main className="container mx-auto px-4 py-8 md:py-12 relative z-10">
         {/* Controls Section */}
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-12"
+          className="mb-12 md:mb-16"
         >
           <div className="flex flex-col lg:flex-row justify-between items-center gap-6 mb-8">
-            <h2 className="text-3xl md:text-4xl font-bold text-center lg:text-left">
-              Rifas <span className="text-blue-400">Disponibles</span>
-            </h2>
+            <div className="text-center lg:text-left">
+              <h2 className="text-3xl md:text-4xl font-bold mb-2 font-montserrat">
+                Rifas <span className="text-[#164C52]">Disponibles</span>
+              </h2>
+              <p className="text-[#9CA3AF] text-lg font-medium">
+                Encuentra la rifa perfecta para ti
+              </p>
+            </div>
             
             <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
               {/* Search Bar */}
-              <div className="relative flex-1 sm:flex-none">
+              <div className="relative flex-1 sm:flex-none min-w-[280px]">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -169,54 +232,39 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Buscar rifas..."
-                  className="pl-10 pr-4 py-3 w-full sm:w-64 bg-white/10 border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-lg"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-[#374151] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#164C52] focus:border-[#164C52] backdrop-blur-lg text-[#FAFAFA] placeholder-[#9CA3AF] transition-all duration-300 font-medium"
+                  aria-label="Buscar rifas"
                 />
               </div>
 
               {/* Filter Buttons */}
-              <div className="flex bg-white/10 backdrop-blur-lg rounded-lg p-1 border border-white/20">
-                <button
-                  onClick={() => setActiveFilter('active')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeFilter === 'active' 
-                      ? 'bg-blue-500 text-white shadow-lg' 
-                      : 'text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  Todas
-                </button>
-                {/* esto se hara cuando halla un dashboard de administrador
-                 <button
-                  onClick={() => setActiveFilter('active')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeFilter === 'active' 
-                      ? 'bg-green-500 text-white shadow-lg' 
-                      : 'text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  Activas
-                </button> */}
-                <button
-                  onClick={() => setActiveFilter('featured')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    activeFilter === 'featured' 
-                      ? 'bg-purple-500 text-white shadow-lg' 
-                      : 'text-gray-300 hover:bg-white/5'
-                  }`}
-                >
-                  Destacadas
-                </button>
+              <div className="flex bg-white/5 backdrop-blur-lg rounded-xl p-1 border border-[#374151]">
+                {[
+                  { key: 'all', label: 'Todas', color: 'bg-[#164C52]' },
+                  { key: 'featured', label: 'Destacadas', color: 'bg-[#FFC857]' }
+                ].map((filter) => (
+                  <button
+                    key={filter.key}
+                    onClick={() => setActiveFilter(filter.key as any)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 font-montserrat ${
+                      activeFilter === filter.key 
+                        ? `${filter.color} text-[#0E1E24] shadow-lg` 
+                        : 'text-[#E5E7EB] hover:bg-white/5'
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
           {/* Results Info */}
           <div className="text-center mb-6">
-            <p className="text-gray-300">
-              Mostrando <span className="text-white font-semibold">{filteredRaffles.length}</span> de{' '}
-              <span className="text-white font-semibold">{filteredRaffles.length}</span> rifas
+            <p className="text-[#9CA3AF] font-medium">
+              Mostrando <span className="text-[#FAFAFA] font-semibold">{filteredRaffles.length}</span> rifas
               {searchTerm && (
-                <span> para &quot;<span className="text-blue-400">{searchTerm}</span>&quot;</span>
+                <span> para &quot;<span className="text-[#164C52]">{searchTerm}</span>&quot;</span>
               )}
             </p>
           </div>
@@ -224,10 +272,10 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
 
         {/* Raffles Display */}
         {loading ? (
-          <div className="flex justify-center items-center h-96">
+          <div className="flex justify-center items-center h-64 md:h-96">
             <div className="text-center">
               <LoadingSpinner />
-              <p className="mt-4 text-gray-300">Cargando rifas disponibles...</p>
+              <p className="mt-4 text-[#9CA3AF] text-lg font-medium">Cargando rifas disponibles...</p>
             </div>
           </div>
         ) : filteredRaffles.length > 0 ? (
@@ -245,11 +293,11 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-16"
+            className="text-center py-16 md:py-24"
           >
-            <div className="text-6xl mb-4">🎯</div>
-            <h3 className="text-2xl font-bold mb-2">No se encontraron rifas</h3>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <div className="text-6xl md:text-8xl mb-6">🎯</div>
+            <h3 className="text-2xl md:text-3xl font-bold mb-4 text-[#FAFAFA] font-montserrat">No se encontraron rifas</h3>
+            <p className="text-[#9CA3AF] max-w-md mx-auto text-lg font-medium">
               {searchTerm 
                 ? 'Intenta con otros términos de búsqueda o revisa nuestras rifas activas.'
                 : 'Pronto tendremos nuevas rifas disponibles. ¡Vuelve más tarde!'
@@ -263,36 +311,46 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-20 text-center"
+          className="mt-20 md:mt-32 text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-8">
-            ¿Cómo <span className="text-green-400">participar</span>?
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 font-montserrat">
+            ¿Cómo <span className="text-[#7BD389]">participar</span>?
           </h2>
+          <p className="text-[#9CA3AF] text-lg mb-12 max-w-2xl mx-auto font-medium">
+            Sigue estos simples pasos para unirte a nuestras rifas y tener la oportunidad de ganar premios increíbles
+          </p>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-white/20 transition-all">
-              <div className="text-4xl mb-4">1️⃣</div>
-              <h3 className="text-xl font-semibold mb-3">Elige tu rifa</h3>
-              <p className="text-gray-300">
-                Explora nuestras rifas activas y selecciona la que más te guste. Cada rifa tiene premios únicos.
-              </p>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-white/20 transition-all">
-              <div className="text-4xl mb-4">2️⃣</div>
-              <h3 className="text-xl font-semibold mb-3">Selecciona tus números</h3>
-              <p className="text-gray-300">
-                Escoge tus números de la suerte. Puedes buscar números específicos o seleccionar al azar.
-              </p>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-white/20 transition-all">
-              <div className="text-4xl mb-4">3️⃣</div>
-              <h3 className="text-xl font-semibold mb-3">¡Participa y gana!</h3>
-              <p className="text-gray-300">
-                Completa tu compra y espera el sorteo. Te notificaremos si eres el afortunado ganador.
-              </p>
-            </div>
+            {[
+              {
+                emoji: "1️⃣",
+                title: "Elige tu rifa",
+                description: "Explora nuestras rifas activas y selecciona la que más te guste. Cada rifa tiene premios únicos y emocionantes."
+              },
+              {
+                emoji: "2️⃣",
+                title: "Selecciona tus números",
+                description: "Escoge tus números de la suerte. Puedes buscar números específicos o seleccionar al azar entre los disponibles."
+              },
+              {
+                emoji: "3️⃣",
+                title: "¡Participa y gana!",
+                description: "Completa tu compra de forma segura y espera el sorteo. Te notificaremos inmediatamente si eres el ganador."
+              }
+            ].map((step, index) => (
+              <div 
+                key={index}
+                className="bg-white/5 backdrop-blur-lg rounded-2xl p-8 border border-[#374151] hover:border-[#164C52]/50 transition-all duration-500 hover:transform hover:scale-105 group"
+              >
+                <div className="text-4xl mb-6 group-hover:scale-110 transition-transform duration-300">
+                  {step.emoji}
+                </div>
+                <h3 className="text-xl font-semibold mb-4 text-[#FAFAFA] font-montserrat">{step.title}</h3>
+                <p className="text-[#9CA3AF] leading-relaxed font-medium">
+                  {step.description}
+                </p>
+              </div>
+            ))}
           </div>
         </motion.section>
 
@@ -301,19 +359,19 @@ const totalPrizeValue = activeRaffles.reduce((sum, r) => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="mt-20 text-center bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl p-8 border border-white/10"
+          className="mt-20 md:mt-32 text-center bg-gradient-to-r from-[#164C52]/30 to-[#7BD389]/20 rounded-3xl p-8 md:p-12 border border-[#374151]/50 backdrop-blur-lg"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            ¿Listo para <span className="text-yellow-400">ganar</span>?
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 font-montserrat">
+            ¿Listo para <span className="text-[#FFC857]">ganar</span>?
           </h2>
-          <p className="text-xl text-gray-300 mb-6 max-w-2xl mx-auto">
-            Únete a miles de participantes que ya están compitiendo por premios increíbles. ¡Tu suerte puede cambiar hoy!
+          <p className="text-xl text-[#E5E7EB] mb-8 max-w-2xl mx-auto leading-relaxed font-medium">
+            Únete a miles de participantes que ya están compitiendo por premios increíbles. 
+            Tu oportunidad de cambiar tu suerte comienza hoy.
           </p>
           <button 
             onClick={() => filteredRaffles.length > 0 && handleRaffleClick(filteredRaffles[0].id)}
             disabled={filteredRaffles.length === 0}
-        
-            className="px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold rounded-lg hover:from-green-600 hover:to-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-4 bg-gradient-to-r from-[#7BD389] to-[#164C52] text-[#0E1E24] font-bold rounded-xl hover:from-[#7BD389] hover:to-[#0E1E24] transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl font-montserrat"
           >
             Comenzar a Participar
           </button>

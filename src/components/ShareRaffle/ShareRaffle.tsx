@@ -1,4 +1,3 @@
-// components/ShareRaffle/ShareRaffle.tsx
 import { useCallback, useRef, useState } from 'react';
 import { Raffle } from '../../services/api';
 import ShareImageGenerator, { ShareImageGeneratorHandle } from './ShareImageGenerator';
