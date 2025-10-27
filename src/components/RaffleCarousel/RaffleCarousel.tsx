@@ -164,7 +164,7 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
                   {/* Prize Image */}
                   <div className="relative h-48 overflow-hidden">
                     <Image
-                      src={'/screaming.jpg'}
+                      src={raffle.prizeImageUrl}
                       alt={raffle.title || raffle.description || 'Raffle prize'}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
