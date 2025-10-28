@@ -2,7 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 
 // Configuración base de Axios
 const api = axios.create({
-    baseURL: 'http://192.168.60.11:3000',
+    baseURL: 'http://192.168.50.11:3000',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -40,11 +40,16 @@ export interface Raffle {
     ticketPrice: number;
     prizeValue: number;
     secondPrizeValue?: number; // Nuevo campo para segundo premio
+    drawMode: DrawMode;
     drawDate: Date | null
     featured: boolean;
     tickets: boolean[];
     status: RaffleStatus;
     createdAt: string;
+}
+export enum DrawMode {
+  APP_DRAW = 'app_draw', // Ejecutado por la aplicación
+  COLOMBIAN_LOTTERY = 'colombian_lottery', // Loterías colombianas
 }
 
 export interface Ticket {

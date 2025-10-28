@@ -24,6 +24,15 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
   const [itemsPerView, setItemsPerView] = useState(1);
   const [autoplay, setAutoplay] = useState(true);
 
+  // Filtrar rifas: excluir DRAFT y ordenar por estado (ACTIVE primero)
+  const filteredRaffles = raffles.filter(raffle => raffle.status !== RaffleStatus.DRAFT)
+    .sort((a, b) => {
+      // Priorizar rifas ACTIVAS
+      if (a.status === RaffleStatus.ACTIVE && b.status !== RaffleStatus.ACTIVE) return -1;
+      if (b.status === RaffleStatus.ACTIVE && a.status !== RaffleStatus.ACTIVE) return 1;
+      return 0;
+    });
+
   // Responsive items per view
   useEffect(() => {
     const updateItemsPerView = () => {
@@ -41,19 +50,19 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
     return () => window.removeEventListener('resize', updateItemsPerView);
   }, []);
 
-  // Auto-play functionality
+  // Auto-play functionality - 10 segundos como solicitado
   useEffect(() => {
-    if (!autoplay || raffles.length <= itemsPerView) return;
+    if (!autoplay || filteredRaffles.length <= itemsPerView) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % Math.ceil(raffles.length / itemsPerView));
-    }, 5000);
+      setCurrentIndex(prev => (prev + 1) % Math.ceil(filteredRaffles.length / itemsPerView));
+    }, 10000); // 10 segundos
 
     return () => clearInterval(interval);
-  }, [autoplay, raffles.length, itemsPerView]);
+  }, [autoplay, filteredRaffles.length, itemsPerView]);
 
-  const totalSlides = Math.ceil(raffles.length / itemsPerView);
-  const visibleRaffles = raffles.slice(
+  const totalSlides = Math.ceil(filteredRaffles.length / itemsPerView);
+  const visibleRaffles = filteredRaffles.slice(
     currentIndex * itemsPerView,
     (currentIndex + 1) * itemsPerView
   );
@@ -61,16 +70,22 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
   const nextSlide = useCallback(() => {
     setCurrentIndex(prev => (prev + 1) % totalSlides);
     setAutoplay(false);
+    // Reactivar auto-play después de 15 segundos de interacción manual
+    setTimeout(() => setAutoplay(true), 15000);
   }, [totalSlides]);
 
   const prevSlide = useCallback(() => {
     setCurrentIndex(prev => (prev - 1 + totalSlides) % totalSlides);
     setAutoplay(false);
+    // Reactivar auto-play después de 15 segundos de interacción manual
+    setTimeout(() => setAutoplay(true), 15000);
   }, [totalSlides]);
 
   const goToSlide = useCallback((index: number) => {
     setCurrentIndex(index);
     setAutoplay(false);
+    // Reactivar auto-play después de 15 segundos de interacción manual
+    setTimeout(() => setAutoplay(true), 15000);
   }, []);
 
   const getRaffleTypeInfo = useCallback((type: RaffleType) => {
@@ -98,7 +113,12 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
     return (soldTickets / raffle.tickets.length) * 100;
   }, []);
 
-  if (raffles.length === 0) {
+  // Efecto para resetear el índice cuando cambian las rifas filtradas
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [filteredRaffles.length]);
+
+  if (filteredRaffles.length === 0) {
     return (
       <div className="text-center py-16">
         <div className="text-6xl mb-4">😴</div>
@@ -111,11 +131,12 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
   return (
     <div className="relative group">
       {/* Navigation Arrows */}
-      {raffles.length > itemsPerView && (
+      {filteredRaffles.length > itemsPerView && (
         <>
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-lg p-3 rounded-full shadow-2xl transition-all opacity-0 group-hover:opacity-100"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-black/70 hover:bg-black/90 backdrop-blur-lg p-4 rounded-full shadow-2xl transition-all opacity-0 group-hover:opacity-100 border border-white/20"
+            aria-label="Rifa anterior"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -123,7 +144,8 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-black/50 hover:bg-black/70 backdrop-blur-lg p-3 rounded-full shadow-2xl transition-all opacity-0 group-hover:opacity-100"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-black/70 hover:bg-black/90 backdrop-blur-lg p-4 rounded-full shadow-2xl transition-all opacity-0 group-hover:opacity-100 border border-white/20"
+            aria-label="Siguiente rifa"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -140,7 +162,7 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
             className={`grid gap-6 ${
               itemsPerView === 1 ? 'grid-cols-1' :
               itemsPerView === 2 ? 'grid-cols-1 md:grid-cols-2' :
@@ -152,49 +174,60 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
               const statusInfo = getStatusInfo(raffle.status);
               const progress = getProgressPercentage(raffle);
               const soldTickets = raffle.tickets.filter((t: boolean) => t).length;
+              const availableTickets = raffle.tickets.length - soldTickets;
 
               return (
                 <motion.div
                   key={raffle.id}
                   whileHover={{ scale: 1.02, y: -5 }}
                   whileTap={{ scale: 0.98 }}
-                  className="bg-white/5 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all cursor-pointer group/card"
+                  className="bg-white/5 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group/card"
                   onClick={() => onRaffleClick(raffle.id)}
                 >
                   {/* Prize Image */}
                   <div className="relative h-48 overflow-hidden">
                     <Image
                       src={raffle.prizeImageUrl}
-                      alt={raffle.title || raffle.description || 'Raffle prize'}
+                      alt={raffle.title || raffle.description || 'Premio de la rifa'}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-300"
+                      className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500"
                       style={{ objectFit: 'cover' }}
                       priority
-
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                     
                     {/* Badges */}
                     <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${typeInfo.color}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${typeInfo.color} backdrop-blur-sm`}>
                         {typeInfo.icon} {typeInfo.label}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${statusInfo.color}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold text-white ${statusInfo.color} backdrop-blur-sm`}>
                         {statusInfo.label}
                       </span>
                     </div>
 
                     {/* Prize Value */}
                     <div className="absolute bottom-4 left-4">
-                      <div className="text-2xl font-bold text-white">${raffle.prizeValue.toLocaleString()}</div>
-                      <div className="text-green-400 text-sm">Premio Principal</div>
+                      <div className="text-2xl font-bold text-white drop-shadow-lg">
+                        ${raffle.prizeValue.toLocaleString()}
+                      </div>
+                      <div className="text-green-400 text-sm font-semibold drop-shadow-lg">
+                        Premio Principal
+                      </div>
                     </div>
+
+                    {/* Auto-play Indicator */}
+                    {autoplay && (
+                      <div className="absolute top-4 right-4">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Raffle Info */}
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-2 line-clamp-2">
+                    <h3 className="text-xl font-bold mb-2 line-clamp-2 text-white">
                       {raffle.title || raffle.description}
                     </h3>
                     
@@ -206,11 +239,13 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
                     <div className="mb-4">
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-gray-300">Progreso de venta</span>
-                        <span className="font-semibold">{soldTickets}/{raffle.tickets.length}</span>
+                        <span className="font-semibold text-white">
+                          {soldTickets.toLocaleString()}/{raffle.tickets.length.toLocaleString()}
+                        </span>
                       </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
                         <div 
-                          className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-500"
+                          className="bg-gradient-to-r from-green-500 via-blue-500 to-purple-500 h-2 rounded-full transition-all duration-700"
                           style={{ width: `${progress}%` }}
                         />
                       </div>
@@ -223,7 +258,13 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
                         <div className="text-gray-400 text-sm">por ticket</div>
                       </div>
                       
-                      <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all">
+                      <button 
+                        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 font-semibold shadow-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRaffleClick(raffle.id);
+                        }}
+                      >
                         Participar
                       </button>
                     </div>
@@ -231,15 +272,15 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
                     {/* Quick Stats */}
                     <div className="flex justify-between mt-4 pt-4 border-t border-white/10 text-xs text-gray-400">
                       <div className="text-center">
-                        <div className="font-bold text-white">{soldTickets}</div>
+                        <div className="font-bold text-white text-sm">{soldTickets.toLocaleString()}</div>
                         <div>Vendidos</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-white">{raffle.tickets.length - soldTickets}</div>
+                        <div className="font-bold text-white text-sm">{availableTickets.toLocaleString()}</div>
                         <div>Disponibles</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-white">{Math.round(progress)}%</div>
+                        <div className="font-bold text-white text-sm">{Math.round(progress)}%</div>
                         <div>Completado</div>
                       </div>
                     </div>
@@ -253,31 +294,43 @@ export default function RaffleCarousel({ raffles, onRaffleClick }: RaffleCarouse
 
       {/* Pagination Dots */}
       {totalSlides > 1 && (
-        <div className="flex justify-center mt-8 space-x-2">
+        <div className="flex justify-center mt-8 space-x-3">
           {Array.from({ length: totalSlides }, (_, index) => (
             <button
               key={index}
               onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all ${
+              className={`rounded-full transition-all duration-300 ${
                 index === currentIndex 
-                  ? 'bg-blue-500 w-8' 
-                  : 'bg-gray-600 hover:bg-gray-500'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 w-8 h-3' 
+                  : 'bg-gray-600 hover:bg-gray-500 w-3 h-3'
               }`}
+              aria-label={`Ir a slide ${index + 1}`}
             />
           ))}
         </div>
       )}
 
       {/* Auto-play Toggle */}
-      {raffles.length > itemsPerView && (
-        <div className="flex justify-center mt-4">
+      {filteredRaffles.length > itemsPerView && (
+        <div className="flex justify-center mt-6">
           <button
             onClick={() => setAutoplay(!autoplay)}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+            className="flex items-center gap-3 px-5 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all duration-300 border border-white/10 hover:border-white/20"
           >
-            <div className={`w-3 h-3 rounded-full ${autoplay ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-sm">Auto-play: {autoplay ? 'On' : 'Off'}</span>
+            <div className={`w-3 h-3 rounded-full transition-colors ${
+              autoplay ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+            }`}></div>
+            <span className="text-sm font-medium">
+              Auto-play: {autoplay ? 'On' : 'Off'}
+            </span>
           </button>
+        </div>
+      )}
+
+      {/* Slide Counter */}
+      {totalSlides > 1 && (
+        <div className="text-center mt-4 text-sm text-gray-400">
+          Slide {currentIndex + 1} de {totalSlides}
         </div>
       )}
     </div>

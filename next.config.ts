@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     'localhost',
     '127.0.0.1',
-    '192.168.60.11',
+    '192.168.50.11',
     '192.168.60.0/24' // Todo el rango de tu red
   ],
   
